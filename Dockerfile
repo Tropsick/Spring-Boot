@@ -11,4 +11,4 @@ COPY . /app
 RUN ./mvnw clean install
 
 # Указываем команду для запуска приложения
-CMD ["java", "-jar", "target/your-application.jar"]
+CMD ["java", "-jar", "target/demo-0.0.1-SNAPSHOT.jar"]
