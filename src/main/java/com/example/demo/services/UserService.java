@@ -24,9 +24,10 @@ public class UserService {
             throw new IllegalArgumentException("Пользователь с таким именем уже существует");
         }
         // Хэшируем пароль перед сохранением
-        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
+        user.setPasswordHash(passwordEncoder.encode(user.getPassword())); // Используем поле user.getPassword()
         userRepository.save(user);
     }
+
 
 
     public Optional<User> findByUsername(String username) {
