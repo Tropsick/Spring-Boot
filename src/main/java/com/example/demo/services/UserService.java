@@ -2,28 +2,37 @@ package com.example.demo.services;
 
 import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    @Transactional // Гарантирует, что операция выполняется в одной транзакции
-    public User registerUser(User user) {
-        System.out.println("📩 Запрос на регистрацию получен: " + user.getUsername()); // <-- Логируем запрос
+    public void registerUser(User user) {
         Optional<User> existingUser = userRepository.findByUsername(user.getUsername());
         if (existingUser.isPresent()) {
             throw new IllegalArgumentException("Пользователь с таким именем уже существует");
         }
-        return userRepository.save(user);
+        // Хэшируем пароль перед сохранением
+        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
+        userRepository.save(user);
     }
 
-
+    public boolean authenticate(String username, String rawPassword) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            return passwordEncoder.matches(rawPassword, user.getPasswordHash());
+        }
+        return false;
+    }
 }
