@@ -37,15 +37,15 @@ public class UserController {
         }
 
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
-        try {
-            User savedUser = userRepository.save(user);
-            logger.info("Пользователь {} успешно зарегистрирован с ID {}", savedUser.getUsername(), savedUser.getId());
-            return ResponseEntity.ok("Пользователь зарегистрирован успешно");
-        } catch (Exception e) {
-            logger.error("Ошибка при сохранении пользователя: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка сервера при регистрации");
-        }
+
+        logger.info("Сохраняем пользователя в БД...");
+        User savedUser = userRepository.save(user);
+        logger.info("Пользователь сохранен в БД с ID {}", savedUser.getId());
+
+        return ResponseEntity.ok("Пользователь зарегистрирован успешно");
     }
+
+
 
     // Логин пользователя
     @PostMapping("/login")
