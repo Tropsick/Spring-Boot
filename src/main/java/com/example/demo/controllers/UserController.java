@@ -2,6 +2,8 @@ package com.example.demo.controllers;
 
 import com.example.demo.models.User;
 import com.example.demo.repositories.UserRepository;
+import com.example.demo.services.UserService;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,40 +15,26 @@ import java.util.Optional;
 
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api")
 public class UserController {
+    private final UserService userService;
 
-    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-
-    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User user) {
-        logger.info("Попытка регистрации пользователя: {}", user.getUsername());
-
-        Optional<User> existingUser = userRepository.findByUsername(user.getUsername());
-        if (existingUser.isPresent()) {
-            logger.warn("Пользователь с логином {} уже существует", user.getUsername());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Пользователь с таким логином уже существует");
+        try {
+            userService.registerUser(user);
+            return ResponseEntity.ok("Пользователь успешно зарегистрирован!");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
-
-        user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
-
-        logger.info("Сохраняем пользователя в БД...");
-        User savedUser = userRepository.save(user);
-        logger.info("Пользователь сохранен в БД с ID {}", savedUser.getId());
-
-        return ResponseEntity.ok("Пользователь зарегистрирован успешно");
     }
 
 
-
+/*
     // Логин пользователя
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody User user) {
@@ -62,5 +50,5 @@ public class UserController {
         } else {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Неверный пароль");
         }
-    }
+    }*/
 }
