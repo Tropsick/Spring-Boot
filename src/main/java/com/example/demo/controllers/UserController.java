@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -13,6 +15,8 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -22,19 +26,25 @@ public class UserController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // Регистрация пользователя
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User user) {
-        // Проверяем, существует ли уже пользователь с таким логином
+        logger.info("Попытка регистрации пользователя: {}", user.getUsername());
+
         Optional<User> existingUser = userRepository.findByUsername(user.getUsername());
         if (existingUser.isPresent()) {
+            logger.warn("Пользователь с логином {} уже существует", user.getUsername());
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Пользователь с таким логином уже существует");
         }
 
-        // Хешируем пароль перед сохранением
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
-        userRepository.save(user);
-        return ResponseEntity.ok("Пользователь зарегистрирован успешно");
+        try {
+            User savedUser = userRepository.save(user);
+            logger.info("Пользователь {} успешно зарегистрирован с ID {}", savedUser.getUsername(), savedUser.getId());
+            return ResponseEntity.ok("Пользователь зарегистрирован успешно");
+        } catch (Exception e) {
+            logger.error("Ошибка при сохранении пользователя: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка сервера при регистрации");
+        }
     }
 
     // Логин пользователя
