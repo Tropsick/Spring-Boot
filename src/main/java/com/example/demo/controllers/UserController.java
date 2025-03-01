@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
+
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api")
@@ -28,11 +30,19 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody User user) {
-        boolean isAuthenticated = userService.authenticate(user.getUsername(), user.getPasswordHash());
-        if (isAuthenticated) {
+        Optional<User> existingUser = userService.findByUsername(user.getUsername());
+
+        if (existingUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
+        }
+
+        // Проверяем пароль
+        if (userService.checkPassword(user.getPassword(), existingUser.get().getPasswordHash())) {
             return ResponseEntity.ok("Вход успешен");
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Неверный логин или пароль");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Неверный пароль");
         }
     }
+
+
 }

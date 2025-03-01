@@ -1,6 +1,8 @@
 package com.example.demo.models;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "users")
@@ -13,11 +15,15 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
 
+    @JsonIgnore // Скрываем passwordHash при JSON-ответе
     @Column(nullable = false)
     private String passwordHash;
 
-    private String avatar;
+    @Transient // Это поле не сохраняется в БД
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // Видно только при приеме запроса
+    private String password;
 
+    private String avatar;
     private int karma;
 
     public User() {}
@@ -52,6 +58,14 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getAvatar() {
