@@ -1,12 +1,17 @@
 package com.example.demo.controllers;
 
 import com.example.demo.models.HelpRequest;
+import com.example.demo.models.User;
+import com.example.demo.repositories.UserRepository;
+import com.example.demo.repositories.HelpRequestRepository;
 import com.example.demo.services.HelpRequestService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/help-requests")
@@ -14,20 +19,46 @@ import java.util.List;
 public class HelpRequestController {
 
     private final HelpRequestService helpRequestService;
+    private final UserRepository userRepository; // Добавили UserRepository
+    private final HelpRequestRepository helpRequestRepository; // Добавили HelpRequestRepository
 
-    public HelpRequestController(HelpRequestService helpRequestService) {
+    // Конструктор с @Autowired
+    public HelpRequestController(HelpRequestService helpRequestService,
+                                 UserRepository userRepository,
+                                 HelpRequestRepository helpRequestRepository) {
         this.helpRequestService = helpRequestService;
+        this.userRepository = userRepository;
+        this.helpRequestRepository = helpRequestRepository;
     }
 
-    // Создание запроса о помощи
     @PostMapping("/create")
-    public ResponseEntity<?> createHelpRequest(@RequestBody HelpRequest request) {
+    public ResponseEntity<?> createHelpRequest(@RequestBody Map<String, String> request) {
         try {
-            HelpRequest savedRequest = helpRequestService.addHelpRequest(request);
-            return ResponseEntity.ok(savedRequest);
+            String username = request.get("username");
+            String category = request.get("category");
+            String price = request.get("price");
+            String description = request.get("description");
+
+            // Ищем пользователя по имени
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
+            }
+
+            // Создаем новый запрос
+            HelpRequest helpRequest = new HelpRequest();
+            helpRequest.setUser(user);  // Теперь user_id берется из объекта User
+            helpRequest.setCategory(category);
+            helpRequest.setPrice(Integer.valueOf(price));
+            helpRequest.setDescription(description);
+            helpRequest.setCreatedAt(LocalDateTime.now());
+
+            // Сохраняем в БД
+            helpRequestRepository.save(helpRequest);
+
+            return ResponseEntity.ok("Запрос помощи успешно создан!");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Ошибка при создании запроса: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при создании запроса: " + e.getMessage());
         }
     }
 
