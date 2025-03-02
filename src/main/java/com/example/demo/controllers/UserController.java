@@ -19,7 +19,6 @@ public class UserController {
 
     public UserController(UserService userService) {
         this.userService = userService;
-        this.helpRequestService = helpRequestService;
     }
 
     @PostMapping("/register")
