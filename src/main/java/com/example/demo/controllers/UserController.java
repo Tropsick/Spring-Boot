@@ -1,5 +1,6 @@
 package com.example.demo.controllers;
 
+import com.example.demo.models.HelpRequest;
 import com.example.demo.models.User;
 import com.example.demo.services.UserService;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ public class UserController {
 
     public UserController(UserService userService) {
         this.userService = userService;
+        this.helpRequestService = helpRequestService;
     }
 
     @PostMapping("/register")
@@ -47,7 +49,6 @@ public class UserController {
         response.put("avatar", user.map(User::getAvatar).orElse("")); // JSON {"avatar": "данные"}
         return ResponseEntity.ok(response);
     }
-
 
     @GetMapping("/getKarma")
     public ResponseEntity<Map<String, Integer>> getKarma(@RequestParam String username) {
