@@ -47,7 +47,7 @@ public class UserController {
         response.put("avatar", user.map(User::getAvatar).orElse("")); // JSON {"avatar": "данные"}
         return ResponseEntity.ok(response);
     }
-ы
+
 
 
 
