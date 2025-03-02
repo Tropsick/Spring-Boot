@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Optional;
 
 @CrossOrigin(origins = "*")
@@ -28,9 +29,11 @@ public class UserController {
         }
     }
     @PostMapping("/updateAvatar")
-    public ResponseEntity<String> updateAvatar(@RequestParam String username, @RequestParam String avatar) {
-        Optional<User> existingUser = userService.findByUsername(username);
+    public ResponseEntity<String> updateAvatar(@RequestBody Map<String, String> payload) {
+        String username = payload.get("username");
+        String avatar = payload.get("avatar");
 
+        Optional<User> existingUser = userService.findByUsername(username);
         if (existingUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
         }
