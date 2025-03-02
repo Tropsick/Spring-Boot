@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -29,28 +30,24 @@ public class UserController {
         }
     }
     @PostMapping("/updateAvatar")
-    public ResponseEntity<String> updateAvatar(@RequestBody Map<String, String> payload) {
-        String username = payload.get("username");
-        String avatar = payload.get("avatar");
-
-        Optional<User> existingUser = userService.findByUsername(username);
+    public ResponseEntity<String> updateAvatar(@RequestBody User user) {
+        Optional<User> existingUser = userService.findByUsername(user.getUsername());
         if (existingUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
         }
 
-        userService.updateAvatar(username, avatar);
+        userService.updateAvatar(user.getUsername(), user.getAvatar());
         return ResponseEntity.ok("Аватар успешно обновлен!");
     }
 
     @GetMapping("/getAvatar")
-    public ResponseEntity<String> getAvatar(@RequestParam String username) {
+    public ResponseEntity<Map<String, String>> getAvatar(@RequestParam String username) {
         Optional<User> user = userService.findByUsername(username);
+        Map<String, String> response = new HashMap<>();
 
-        if (user.isPresent() && user.get().getAvatar() != null && !user.get().getAvatar().equals("[null]")) {
-            return ResponseEntity.ok(user.get().getAvatar());
-        } else {
-            return ResponseEntity.ok(""); // Возвращаем пустую строку, если аватар отсутствует
-        }
+        response.put("avatar", user.map(User::getAvatar).orElse(""));
+
+        return ResponseEntity.ok(response);
     }
 
 
