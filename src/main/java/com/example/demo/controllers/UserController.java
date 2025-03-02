@@ -44,11 +44,10 @@ public class UserController {
     public ResponseEntity<Map<String, String>> getAvatar(@RequestParam String username) {
         Optional<User> user = userService.findByUsername(username);
         Map<String, String> response = new HashMap<>();
-
-        response.put("avatar", user.map(User::getAvatar).orElse(""));
-
+        response.put("avatar", user.map(User::getAvatar).orElse("")); // JSON {"avatar": "данные"}
         return ResponseEntity.ok(response);
     }
+ы
 
 
 
