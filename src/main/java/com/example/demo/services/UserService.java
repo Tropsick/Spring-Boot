@@ -29,7 +29,13 @@ public class UserService {
     }
 
 
-
+    public void updateAvatar(String username, String avatar) {
+        Optional<User> existingUser = userRepository.findByUsername(username);
+        existingUser.ifPresent(user -> {
+            user.setAvatar(avatar);
+            userRepository.save(user);
+        });
+    }
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
