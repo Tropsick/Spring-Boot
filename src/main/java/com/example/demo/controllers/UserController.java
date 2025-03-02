@@ -49,6 +49,13 @@ public class UserController {
     }
 
 
+    @GetMapping("/getKarma")
+    public ResponseEntity<Map<String, Integer>> getKarma(@RequestParam String username) {
+        Optional<User> user = userService.findByUsername(username);
+        Map<String, Integer> response = new HashMap<>();
+        response.put("karma", user.map(User::getKarma).orElse(0)); // JSON {"karma": значение}
+        return ResponseEntity.ok(response);
+    }
 
 
     @PostMapping("/login")
