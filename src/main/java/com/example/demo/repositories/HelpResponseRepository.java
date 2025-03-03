@@ -6,5 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface HelpResponseRepository extends JpaRepository<HelpResponse, Long> {
-    // Методы для работы с таблицей help_responses, если нужно
 }

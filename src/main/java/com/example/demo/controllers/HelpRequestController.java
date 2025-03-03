@@ -9,6 +9,8 @@ import com.example.demo.repositories.HelpRequestRepository;
 import com.example.demo.services.HelpRequestService;
 import com.example.demo.services.HelpResponseService;
 import com.example.demo.services.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -30,6 +32,7 @@ public class HelpRequestController {
     private final HelpResponseRepository helpResponseRepository; // Добавили HelpRequestRepository
     private final UserService userService; // Добавляем зависимость от UserService
 
+    private static final Logger logger = LoggerFactory.getLogger(HelpRequestController.class); // Добавляем логгер
 
     @Autowired
     public HelpRequestController(HelpRequestService helpRequestService,
@@ -46,16 +49,21 @@ public class HelpRequestController {
     @PostMapping("/accept")
     public ResponseEntity<?> acceptHelpRequest(@RequestParam String requestUsername, @RequestParam String responderUsername) {
         try {
+            logger.info("Попытка принять запрос: requestUsername={}, responderUsername={}", requestUsername, responderUsername);
+
             // Получаем пользователя, который отправил запрос
             User requestUser = userService.findByUsername(requestUsername)
                     .orElseThrow(() -> new RuntimeException("Пользователь с таким запросом не найден"));
+            logger.info("Пользователь с запросом найден: {}", requestUser.getUsername());
 
             // Получаем пользователя, который отвечает на запрос
             User responder = userRepository.findByUsername(responderUsername)
                     .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+            logger.info("Пользователь-ответчик найден: {}", responder.getUsername());
 
             // Проверяем, что responder не является создателем запроса
             if (requestUser.getUsername().equals(responderUsername)) {
+                logger.warn("Попытка принять свой собственный запрос: {}", responderUsername);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете принять свой собственный запрос");
             }
 
@@ -64,6 +72,7 @@ public class HelpRequestController {
                     .filter(request -> request.getUser().getUsername().equals(requestUsername))
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("Запрос не найден"));
+            logger.info("Запрос помощи найден: {}", helpRequest.getId());
 
             // Создаем новый ответ на запрос
             HelpResponse helpResponse = new HelpResponse();
@@ -71,12 +80,15 @@ public class HelpRequestController {
             helpResponse.setResponder(responder);
             helpResponse.setCompleted(false); // Статус "не завершено"
             helpResponse.setCreatedAt(LocalDateTime.now());
+            logger.info("Создан новый ответ на запрос: {}", helpResponse.getId());
 
             // Сохраняем ответ в базе данных
             helpResponseRepository.save(helpResponse);
+            logger.info("Ответ на запрос сохранен в базе данных");
 
             return ResponseEntity.ok("Запрос принят");
         } catch (Exception e) {
+            logger.error("Ошибка при принятии запроса: {}", e.getMessage(), e); // Логируем ошибку с деталями
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при принятии запроса: " + e.getMessage());
         }
     }
