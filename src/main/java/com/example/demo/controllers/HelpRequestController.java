@@ -46,7 +46,7 @@ public class HelpRequestController {
     @PostMapping("/accept")
     public ResponseEntity<?> acceptHelpRequest(@RequestParam String requestUsername, @RequestParam String responderUsername) {
         try {
-            // Получаем запрос помощи по имени пользователя
+            // Получаем пользователя, который отправил запрос
             User requestUser = userService.findByUsername(requestUsername)
                     .orElseThrow(() -> new RuntimeException("Пользователь с таким запросом не найден"));
 
@@ -59,12 +59,13 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете принять свой собственный запрос");
             }
 
-            // Создаем новый ответ на запрос
+            // Находим запрос помощи
             HelpRequest helpRequest = helpRequestRepository.findAll().stream()
                     .filter(request -> request.getUser().getUsername().equals(requestUsername))
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("Запрос не найден"));
 
+            // Создаем новый ответ на запрос
             HelpResponse helpResponse = new HelpResponse();
             helpResponse.setHelpRequest(helpRequest);
             helpResponse.setResponder(responder);
@@ -79,8 +80,6 @@ public class HelpRequestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при принятии запроса: " + e.getMessage());
         }
     }
-
-
 
 
     @PostMapping("/create")
