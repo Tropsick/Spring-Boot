@@ -8,6 +8,7 @@ import com.example.demo.repositories.UserRepository;
 import com.example.demo.repositories.HelpRequestRepository;
 import com.example.demo.services.HelpRequestService;
 import com.example.demo.services.HelpResponseService;
+import com.example.demo.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -27,36 +28,43 @@ public class HelpRequestController {
     private final UserRepository userRepository; // Добавили UserRepository
     private final HelpRequestRepository helpRequestRepository; // Добавили HelpRequestRepository
     private final HelpResponseRepository helpResponseRepository; // Добавили HelpRequestRepository
+    private final UserService userService; // Добавляем зависимость от UserService
 
 
     @Autowired
     public HelpRequestController(HelpRequestService helpRequestService,
                                  UserRepository userRepository,
-                                 HelpRequestRepository helpRequestRepository, HelpResponseRepository helpResponseRepository) {
+                                 HelpRequestRepository helpRequestRepository, HelpResponseRepository helpResponseRepository,
+                                 UserService userService) {
         this.helpRequestService = helpRequestService;
         this.userRepository = userRepository;
         this.helpRequestRepository = helpRequestRepository;
         this.helpResponseRepository = helpResponseRepository;
+        this.userService = userService; // Присваиваем зависимость
+
     }
     @PostMapping("/accept")
     public ResponseEntity<?> acceptHelpRequest(@RequestParam String requestUsername, @RequestParam String responderUsername) {
         try {
-            // Найдем запрос по username отправителя
+            // Получаем запрос помощи по имени пользователя
+            User requestUser = userService.findByUsername(requestUsername)
+                    .orElseThrow(() -> new RuntimeException("Пользователь с таким запросом не найден"));
+
+            // Получаем пользователя, который отвечает на запрос
+            User responder = userRepository.findByUsername(responderUsername)
+                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+            // Проверяем, что responder не является создателем запроса
+            if (requestUser.getUsername().equals(responderUsername)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете принять свой собственный запрос");
+            }
+
+            // Создаем новый ответ на запрос
             HelpRequest helpRequest = helpRequestRepository.findAll().stream()
                     .filter(request -> request.getUser().getUsername().equals(requestUsername))
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("Запрос не найден"));
 
-            // Найдем пользователя (responder) по username
-            User responder = userRepository.findByUsername(responderUsername)
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
-            // Проверим, что responder не является создателем этого запроса
-            if (helpRequest.getUser().getUsername().equals(responderUsername)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете принять свой собственный запрос");
-            }
-
-            // Создаем новый ответ на запрос
             HelpResponse helpResponse = new HelpResponse();
             helpResponse.setHelpRequest(helpRequest);
             helpResponse.setResponder(responder);
@@ -68,9 +76,10 @@ public class HelpRequestController {
 
             return ResponseEntity.ok("Запрос принят");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при принятии запроса");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при принятии запроса: " + e.getMessage());
         }
     }
+
 
 
 
