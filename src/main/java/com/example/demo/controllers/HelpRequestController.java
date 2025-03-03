@@ -83,7 +83,9 @@ public class HelpRequestController {
             logger.info("Создан новый ответ на запрос: {}", helpResponse.getId());
 
             // Сохраняем ответ в базе данных
+            logger.info("Ответ на запрос: {}", helpResponse);
             helpResponseRepository.save(helpResponse);
+            logger.info("Ответ сохранен с ID: {}", helpResponse.getId());
             logger.info("Ответ на запрос сохранен в базе данных");
 
             return ResponseEntity.ok("Запрос принят");
