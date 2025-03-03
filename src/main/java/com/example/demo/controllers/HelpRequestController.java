@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/help-requests")
@@ -62,10 +63,20 @@ public class HelpRequestController {
         }
     }
 
-    // Получение всех запросов (для списка в приложении)
+    // Получение всех запросов, кроме запросов текущего пользователя
     @GetMapping("/all")
-    public ResponseEntity<List<HelpRequest>> getAllHelpRequests() {
-        List<HelpRequest> requests = helpRequestService.getAllHelpRequests();
-        return ResponseEntity.ok(requests);
+    public ResponseEntity<List<HelpRequest>> getAllHelpRequests(@RequestParam String username) {
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+
+        // Получаем все запросы, кроме тех, которые были отправлены текущим пользователем
+        List<HelpRequest> helpRequests = helpRequestRepository.findAll().stream()
+                .filter(request -> !request.getUser().getUsername().equals(username))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(helpRequests);
     }
+
 }
