@@ -92,8 +92,7 @@ public class HelpRequestController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
 
-        // Получаем все запросы, кроме тех, которые были отправлены текущим пользователем,
-        // и исключаем те, на которые есть ответы (начатые или завершенные)
+
         List<HelpRequest> helpRequests = helpRequestRepository.findAll().stream()
                 .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем запросы текущего пользователя
                 .filter(request -> {
@@ -101,8 +100,7 @@ public class HelpRequestController {
                     List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
 
                     // Проверяем, что нет откликов на запрос, включая начатые или завершенные
-                    return responses.stream().noneMatch(response -> response.getResponder().getUsername().equals(username)
-                            && !response.isCompleted() ||  !response.isCompleted());
+                    return responses.stream().noneMatch(response -> response.getResponder().getUsername().equals(username));
                 })
                 .collect(Collectors.toList());
 
