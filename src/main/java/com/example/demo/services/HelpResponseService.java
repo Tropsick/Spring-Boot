@@ -6,6 +6,8 @@ import com.example.demo.models.User;
 import com.example.demo.repositories.HelpRequestRepository;
 import com.example.demo.repositories.HelpResponseRepository;
 import com.example.demo.repositories.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,7 @@ import java.util.List;
 
 @Service
 public class HelpResponseService {
+    private static final Logger logger = LoggerFactory.getLogger(HelpResponseService.class);
 
     @Autowired
     private HelpResponseRepository helpResponseRepository;
@@ -31,10 +34,16 @@ public class HelpResponseService {
 
         User responderUser = userRepository.findByUsername(responderUsername)
                 .orElseThrow(() -> new RuntimeException("Респондер не найден"));
-
+        // Логируем список всех запросов на помощь перед созданием отклика
+        List<HelpRequest> allHelpRequests = helpRequestRepository.findAll();
+        logger.info("Список всех запросов помощи:");
+        for (HelpRequest hr : allHelpRequests) {
+            logger.info("ID запроса: {}, Пользователь: {}, Описание: {}", hr.getId(), hr.getUser().getUsername(), hr.getDescription());
+        }
         // Ищем активный запрос на помощь, у которого еще нет ответа
         HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser)
                 .orElseThrow(() -> new RuntimeException("Нет доступных запросов помощи"));
+
 
 
         // Создаем новый отклик
@@ -57,6 +66,11 @@ public class HelpResponseService {
                 .orElseThrow(() -> new RuntimeException("Ответ не найден"));
 
         helpResponse.setCompleted(true);
+
+        // Логируем информацию о завершении отклика
+        logger.info("Ответ с ID {} был завершен. Запрос: {}", helpResponse.getId(), helpResponse.getHelpRequest().getId());
+
         return helpResponseRepository.save(helpResponse);
     }
 }
+
