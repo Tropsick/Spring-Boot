@@ -15,4 +15,3 @@ public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> 
     Optional<HelpRequest> findOpenRequestByUser(@Param("user") User user);
 
 }
-
