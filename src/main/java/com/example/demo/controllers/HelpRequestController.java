@@ -95,18 +95,12 @@ public class HelpRequestController {
         // Получаем все запросы и фильтруем их
         List<HelpRequest> helpRequests = helpRequestRepository.findAll().stream()
                 .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем запросы текущего пользователя
-                .filter(request -> {
-                    // Получаем все отклики на запрос
-                    List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
-
-                    // Проверяем, что на запросе нет откликов от других пользователей (начатых или завершённых)
-                    return responses.stream()
-                            .noneMatch(response -> !response.getResponder().getUsername().equals(username));
-                })
+                .filter(request -> helpResponseRepository.countByHelpRequest(request) == 0) // Оставляем только запросы без откликов
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(helpRequests);
     }
+
 
 
 

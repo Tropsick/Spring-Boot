@@ -15,6 +15,6 @@ public interface HelpResponseRepository extends JpaRepository<HelpResponse, Long
     // Метод для поиска отклика по запросу и респондеру
     List<HelpResponse> findByHelpRequestAndResponder(HelpRequest request, User user);
 
-    // Метод для поиска откликов по запросу
-    List<HelpResponse> findByHelpRequest(HelpRequest request);
+    long countByHelpRequest(HelpRequest helpRequest);
+
 }
