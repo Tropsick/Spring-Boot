@@ -97,14 +97,14 @@ public class HelpRequestController {
                 .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем запросы текущего пользователя
                 .filter(request -> {
                     // Проверяем, что нет завершенных откликов на запрос
-                    Optional<HelpResponse> response = helpResponseRepository.findByHelpRequestAndResponder(request, user);
-                    // Если отклик существует, проверяем его статус, если отклик нет - пропускаем
-                    return response.map(r -> !r.isCompleted()).orElse(true);
+                    List<HelpResponse> responses = helpResponseRepository.findByHelpRequestAndResponder(request, user);
+                    return responses.stream().noneMatch(HelpResponse::isCompleted); // Исключаем запросы, на которые есть завершенные отклики
                 })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(helpRequests);
     }
+
 
 
 
