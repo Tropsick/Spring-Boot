@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -96,12 +97,13 @@ public class HelpRequestController {
                 .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем запросы текущего пользователя
                 .filter(request -> {
                     // Проверяем, что нет завершенных откликов на запрос
-                    return helpResponseRepository.findAllByHelpRequest(request).stream()
-                            .noneMatch(response -> response.isCompleted()); // Исключаем запросы, на которые есть завершенные отклики
+                    Optional<HelpResponse> response = helpResponseRepository.findByHelpRequestAndResponder(request, user);
+                    return response.isEmpty() || !response.get().isCompleted(); // Исключаем запросы, на которые есть завершенные отклики
                 })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(helpRequests);
     }
+
 
 }
