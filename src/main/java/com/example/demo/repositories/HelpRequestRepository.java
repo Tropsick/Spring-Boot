@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> {
-    @Query("SELECT h FROM HelpRequest h WHERE h.user = :user AND NOT EXISTS (SELECT r FROM HelpResponse r WHERE r.helpRequest = h)")
+    @Query("SELECT h FROM HelpRequest h WHERE h.user = :user")
     Optional<HelpRequest> findOpenRequestByUser(@Param("user") User user);
 
 }
