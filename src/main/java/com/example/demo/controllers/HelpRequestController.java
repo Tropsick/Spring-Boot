@@ -24,30 +24,28 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/help-requests")
-@CrossOrigin(origins = "*") // Разрешает запросы с любого источника (можно настроить)
+@CrossOrigin(origins = "*")
 public class HelpRequestController {
-    private HelpResponseService helpResponseService;
     private final HelpRequestService helpRequestService;
-    private final UserRepository userRepository; // Добавили UserRepository
-    private final HelpRequestRepository helpRequestRepository; // Добавили HelpRequestRepository
-    private final HelpResponseRepository helpResponseRepository; // Добавили HelpRequestRepository
-    private final UserService userService; // Добавляем зависимость от UserService
+    private final UserRepository userRepository;
+    private final HelpRequestRepository helpRequestRepository;
+    private final HelpResponseRepository helpResponseRepository;
+    private final UserService userService;
 
-    private static final Logger logger = LoggerFactory.getLogger(HelpRequestController.class); // Добавляем логгер
+    private static final Logger logger = LoggerFactory.getLogger(HelpRequestController.class);
 
     @Autowired
     public HelpRequestController(HelpRequestService helpRequestService,
                                  UserRepository userRepository,
-                                 HelpRequestRepository helpRequestRepository, HelpResponseRepository helpResponseRepository,
+                                 HelpRequestRepository helpRequestRepository,
+                                 HelpResponseRepository helpResponseRepository,
                                  UserService userService) {
         this.helpRequestService = helpRequestService;
         this.userRepository = userRepository;
         this.helpRequestRepository = helpRequestRepository;
         this.helpResponseRepository = helpResponseRepository;
-        this.userService = userService; // Присваиваем зависимость
-
+        this.userService = userService;
     }
-
 
     @PostMapping("/create")
     public ResponseEntity<?> createHelpRequest(@RequestBody Map<String, String> request) {
@@ -63,9 +61,15 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
+            // Проверяем, есть ли уже активный запрос у пользователя
+            HelpRequest existingRequest = helpRequestRepository.findOpenRequestByUser(user).orElse(null);
+            if (existingRequest != null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("У вас уже есть активный запрос");
+            }
+
             // Создаем новый запрос
             HelpRequest helpRequest = new HelpRequest();
-            helpRequest.setUser(user);  // Теперь user_id берется из объекта User
+            helpRequest.setUser(user);
             helpRequest.setCategory(category);
             helpRequest.setPrice(Integer.valueOf(price));
             helpRequest.setDescription(description);
@@ -80,7 +84,6 @@ public class HelpRequestController {
         }
     }
 
-    // Получение всех запросов, кроме запросов текущего пользователя
     @GetMapping("/all")
     public ResponseEntity<List<HelpRequest>> getAllHelpRequests(@RequestParam String username) {
         User user = userRepository.findByUsername(username).orElse(null);
@@ -90,7 +93,12 @@ public class HelpRequestController {
 
         // Получаем все запросы, кроме тех, которые были отправлены текущим пользователем
         List<HelpRequest> helpRequests = helpRequestRepository.findAll().stream()
-                .filter(request -> !request.getUser().getUsername().equals(username))
+                .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем запросы текущего пользователя
+                .filter(request -> {
+                    // Проверяем, что нет завершенных откликов на запрос
+                    return helpResponseRepository.findAllByHelpRequest(request).stream()
+                            .noneMatch(response -> response.isCompleted()); // Исключаем запросы, на которые есть завершенные отклики
+                })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(helpRequests);

@@ -9,6 +9,7 @@ import java.util.List;
 
 @Repository
 public interface HelpResponseRepository extends JpaRepository<HelpResponse, Long> {
-    List<HelpResponse> findByHelpRequest(HelpRequest helpRequest);
+    List<HelpResponse> findAllByHelpRequest(HelpRequest helpRequest);
+
 }
 

@@ -27,6 +27,13 @@ public class HelpResponseService {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * Создание отклика на запрос помощи
+     *
+     * @param requestUsername имя пользователя, который сделал запрос
+     * @param responderUsername имя пользователя, который откликается
+     * @return HelpResponse отклик на запрос
+     */
     public HelpResponse createHelpResponse(String requestUsername, String responderUsername) {
         // Ищем пользователей по именам
         User requestUser = userRepository.findByUsername(requestUsername)
@@ -34,18 +41,16 @@ public class HelpResponseService {
 
         User responderUser = userRepository.findByUsername(responderUsername)
                 .orElseThrow(() -> new RuntimeException("Респондер не найден"));
-        // Логируем список всех запросов на помощь перед созданием отклика
-        List<HelpRequest> allHelpRequests = helpRequestRepository.findAll();
-        logAllHelpResponses();
-        logger.info("Список всех запросов помощи:");
-        for (HelpRequest hr : allHelpRequests) {
-            logger.info("ID запроса: {}, Пользователь: {}, Описание: {}", hr.getId(), hr.getUser().getUsername(), hr.getDescription());
-        }
-        // Ищем активный запрос на помощь, у которого еще нет ответа
+
+        // Ищем открытые запросы на помощь от requestUser, к которым еще нет отклика
         HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser)
                 .orElseThrow(() -> new RuntimeException("Нет доступных запросов помощи"));
 
-
+        // Проверка, не оставил ли responder уже отклик на этот запрос
+        List<HelpResponse> existingResponses = helpResponseRepository.findByHelpRequestAndResponder(helpRequest, responderUser);
+        if (!existingResponses.isEmpty()) {
+            throw new RuntimeException("Респондер уже оставил отклик на этот запрос");
+        }
 
         // Создаем новый отклик
         HelpResponse helpResponse = new HelpResponse();
@@ -54,17 +59,22 @@ public class HelpResponseService {
         helpResponse.setCompleted(false);
         helpResponse.setCreatedAt(LocalDateTime.now());
 
-        // Сохраняем новый отклик
+        // Логируем создание отклика
+        logger.info("Респондер {} создал отклик на запрос помощи ID {}", responderUsername, helpRequest.getId());
+
+        // Сохраняем отклик в БД
         return helpResponseRepository.save(helpResponse);
     }
+
+    /**
+     * Логирование всех откликов
+     */
     public void logAllHelpResponses() {
-        logger.info("Список всех ответов помощи:");
-        // Получаем все ответы из репозитория
+        logger.info("Список всех откликов на запросы помощи:");
         List<HelpResponse> allHelpResponses = helpResponseRepository.findAll();
 
         for (HelpResponse hr : allHelpResponses) {
-            // Логируем информацию о каждом ответе
-            logger.info("ID ответа: {}, ID запроса: {}, Ответчик: {}, Статус выполнения: {}, Дата создания: {}",
+            logger.info("ID отклика: {}, ID запроса: {}, Ответчик: {}, Статус: {}, Дата создания: {}",
                     hr.getId(),
                     hr.getHelpRequest().getId(),
                     hr.getResponder().getUsername(),
@@ -72,20 +82,32 @@ public class HelpResponseService {
                     hr.getCreatedAt());
         }
     }
+
+    /**
+     * Получение всех откликов
+     *
+     * @return List<HelpResponse> список всех откликов
+     */
     public List<HelpResponse> getAllHelpResponses() {
         return helpResponseRepository.findAll();
     }
 
+    /**
+     * Завершение отклика
+     *
+     * @param responseId ID отклика
+     * @return HelpResponse обновленный отклик с пометкой завершенности
+     */
     public HelpResponse completeHelpResponse(Long responseId) {
         HelpResponse helpResponse = helpResponseRepository.findById(responseId)
                 .orElseThrow(() -> new RuntimeException("Ответ не найден"));
 
+        // Обновляем статус на завершено
         helpResponse.setCompleted(true);
 
-        // Логируем информацию о завершении отклика
-        logger.info("Ответ с ID {} был завершен. Запрос: {}", helpResponse.getId(), helpResponse.getHelpRequest().getId());
+        // Логируем завершение отклика
+        logger.info("Отклик с ID {} был завершен для запроса с ID {}", helpResponse.getId(), helpResponse.getHelpRequest().getId());
 
         return helpResponseRepository.save(helpResponse);
     }
 }
-
