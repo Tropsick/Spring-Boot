@@ -8,7 +8,8 @@ WORKDIR /app
 COPY . /app
 
 # Загружаем зависимости
-RUN ./mvnw clean install
+RUN ./mvnw clean install -X
+
 
 # Указываем команду для запуска приложения
 CMD ["java", "-jar", "target/demo-0.0.1-SNAPSHOT.jar"]
