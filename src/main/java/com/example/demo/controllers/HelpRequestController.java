@@ -92,19 +92,22 @@ public class HelpRequestController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
 
+        // Получаем все запросы и фильтруем их
         List<HelpRequest> helpRequests = helpRequestRepository.findAll().stream()
                 .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем запросы текущего пользователя
                 .filter(request -> {
                     // Получаем все отклики на запрос
                     List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
 
-                    // Проверяем, что на запросе нет откликов (начатых или завершённых) от других пользователей
-                    return responses.stream().noneMatch(response -> !response.getResponder().getUsername().equals(username));
+                    // Проверяем, что на запросе нет откликов от других пользователей (начатых или завершённых)
+                    return responses.stream()
+                            .noneMatch(response -> !response.getResponder().getUsername().equals(username));
                 })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(helpRequests);
     }
+
 
 
 }
