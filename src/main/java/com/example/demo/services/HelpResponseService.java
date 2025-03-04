@@ -9,6 +9,9 @@ import com.example.demo.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 @Service
 public class HelpResponseService {
 
@@ -21,18 +24,38 @@ public class HelpResponseService {
     @Autowired
     private UserRepository userRepository;
 
-    public void createHelpResponse(Long requestId, Long responderId) {
-        HelpRequest helpRequest = helpRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Запрос не найден"));
-
-        User responder = userRepository.findById(responderId)
+    public HelpResponse createHelpResponse(String requestUsername, String responderUsername) {
+        // Ищем пользователей по именам
+        User requestUser = userRepository.findByUsername(requestUsername)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
+        User responderUser = userRepository.findByUsername(responderUsername)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        // Ищем запрос помощи, который еще не принят
+        HelpRequest helpRequest = helpRequestRepository.findByUserAndIsCompletedFalse(requestUser)
+                .orElseThrow(() -> new RuntimeException("Нет доступных запросов помощи"));
+
+        // Создаем новый отклик
         HelpResponse helpResponse = new HelpResponse();
         helpResponse.setHelpRequest(helpRequest);
-        helpResponse.setResponder(responder);
+        helpResponse.setResponder(responderUser);
         helpResponse.setCompleted(false);
+        helpResponse.setCreatedAt(LocalDateTime.now());
 
-        helpResponseRepository.save(helpResponse);
+        // Сохраняем новый отклик
+        return helpResponseRepository.save(helpResponse);
+    }
+
+    public List<HelpResponse> getAllHelpResponses() {
+        return helpResponseRepository.findAll();
+    }
+
+    public HelpResponse completeHelpResponse(Long responseId) {
+        HelpResponse helpResponse = helpResponseRepository.findById(responseId)
+                .orElseThrow(() -> new RuntimeException("Ответ не найден"));
+
+        helpResponse.setCompleted(true);
+        return helpResponseRepository.save(helpResponse);
     }
 }
