@@ -47,56 +47,6 @@ public class HelpRequestController {
         this.userService = userService; // Присваиваем зависимость
 
     }
-    @Transactional
-    @PostMapping("/accept")
-    public ResponseEntity<?> acceptHelpRequest(@RequestParam String requestUsername, @RequestParam String responderUsername) {
-        try {
-            logger.info("Попытка принять запрос: requestUsername={}, responderUsername={}", requestUsername, responderUsername);
-
-            // Получаем пользователя, который отправил запрос
-            User requestUser = userService.findByUsername(requestUsername)
-                    .orElseThrow(() -> new RuntimeException("Пользователь с таким запросом не найден"));
-            logger.info("Пользователь с запросом найден: {}", requestUser.getUsername());
-
-            // Получаем пользователя, который отвечает на запрос
-            User responder = userRepository.findByUsername(responderUsername)
-                    .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-            logger.info("Пользователь-ответчик найден: {}", responder.getUsername());
-
-            // Проверяем, что responder не является создателем запроса
-            if (requestUser.getUsername().equals(responderUsername)) {
-                logger.warn("Попытка принять свой собственный запрос: {}", responderUsername);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете принять свой собственный запрос");
-            }
-
-            // Находим запрос помощи
-            HelpRequest helpRequest = helpRequestRepository.findAll().stream()
-                    .filter(request -> request.getUser().getUsername().equals(requestUsername))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Запрос не найден"));
-            logger.info("Запрос помощи найден: {}", helpRequest.getId());
-
-            // Создаем новый ответ на запрос
-            HelpResponse helpResponse = new HelpResponse();
-            helpResponse.setHelpRequest(helpRequest);
-            helpResponse.setResponder(responder);
-            helpResponse.setCompleted(false);
-            helpResponse.setCreatedAt(LocalDateTime.now());
-            
-            logger.info("Создан новый ответ на запрос: {}", helpResponse.getId());
-
-            // Сохраняем ответ в базе данных
-            logger.info("Ответ на запрос: {}", helpResponse);
-            helpResponseRepository.save(helpResponse);
-            logger.info("Ответ сохранен с ID: {}", helpResponse.getId());
-            logger.info("Ответ на запрос сохранен в базе данных");
-
-            return ResponseEntity.ok("Запрос принят");
-        } catch (Exception e) {
-            logger.error("Ошибка при принятии запроса: {}", e.getMessage(), e); // Логируем ошибку с деталями
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при принятии запроса: " + e.getMessage());
-        }
-    }
 
 
     @PostMapping("/create")

@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 @Entity
 public class HelpResponse {
     @Id
-    private Long id;  // Не указываем @GeneratedValue, так как инкремент будет в БД
-
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     @ManyToOne
     @JoinColumn(name = "request_id", nullable = false)
     private HelpRequest helpRequest;
