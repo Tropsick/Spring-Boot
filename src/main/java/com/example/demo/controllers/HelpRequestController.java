@@ -98,12 +98,14 @@ public class HelpRequestController {
                 .filter(request -> {
                     // Проверяем, что нет завершенных откликов на запрос
                     Optional<HelpResponse> response = helpResponseRepository.findByHelpRequestAndResponder(request, user);
-                    return response.isEmpty() || !response.get().isCompleted(); // Исключаем запросы, на которые есть завершенные отклики
+                    // Если отклик существует, проверяем его статус, если отклик нет - пропускаем
+                    return response.map(r -> !r.isCompleted()).orElse(true);
                 })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(helpRequests);
     }
+
 
 
 }
