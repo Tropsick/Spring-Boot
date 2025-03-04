@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> {
+    
 }

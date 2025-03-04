@@ -9,6 +9,7 @@ import com.example.demo.repositories.HelpRequestRepository;
 import com.example.demo.services.HelpRequestService;
 import com.example.demo.services.HelpResponseService;
 import com.example.demo.services.UserService;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +47,7 @@ public class HelpRequestController {
         this.userService = userService; // Присваиваем зависимость
 
     }
+    @Transactional
     @PostMapping("/accept")
     public ResponseEntity<?> acceptHelpRequest(@RequestParam String requestUsername, @RequestParam String responderUsername) {
         try {
