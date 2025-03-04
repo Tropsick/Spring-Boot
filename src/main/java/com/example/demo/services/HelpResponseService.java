@@ -33,11 +33,9 @@ public class HelpResponseService {
                 .orElseThrow(() -> new RuntimeException("Респондер не найден"));
 
         // Ищем активный запрос на помощь, у которого еще нет ответа
-        HelpRequest helpRequest = helpRequestRepository.findAll().stream()
-                .filter(req -> req.getUser().equals(requestUser))
-                .filter(req -> helpResponseRepository.findByHelpRequest(req).isEmpty()) // Проверяем, нет ли уже ответа
-                .findFirst()
+        HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser)
                 .orElseThrow(() -> new RuntimeException("Нет доступных запросов помощи"));
+
 
         // Создаем новый отклик
         HelpResponse helpResponse = new HelpResponse();
