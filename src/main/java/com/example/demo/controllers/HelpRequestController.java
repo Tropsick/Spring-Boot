@@ -80,8 +80,9 @@ public class HelpRequestController {
             HelpResponse helpResponse = new HelpResponse();
             helpResponse.setHelpRequest(helpRequest);
             helpResponse.setResponder(responder);
-            helpResponse.setCompleted(false); // Статус "не завершено"
+            helpResponse.setCompleted(false);
             helpResponse.setCreatedAt(LocalDateTime.now());
+            
             logger.info("Создан новый ответ на запрос: {}", helpResponse.getId());
 
             // Сохраняем ответ в базе данных
