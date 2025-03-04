@@ -84,6 +84,11 @@ public class HelpRequestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при создании запроса: " + e.getMessage());
         }
     }
+    @GetMapping("/count")
+    public ResponseEntity<Long> getHelpRequestResponseCount(@RequestParam Long requestId) {
+        long count = helpResponseRepository.countByHelpRequest(helpRequestRepository.findById(requestId).orElse(null));
+        return ResponseEntity.ok(count);
+    }
 
     @GetMapping("/all")
     public ResponseEntity<List<HelpRequest>> getAllHelpRequests(@RequestParam String username) {
