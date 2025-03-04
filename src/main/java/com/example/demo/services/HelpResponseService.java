@@ -36,6 +36,7 @@ public class HelpResponseService {
                 .orElseThrow(() -> new RuntimeException("Респондер не найден"));
         // Логируем список всех запросов на помощь перед созданием отклика
         List<HelpRequest> allHelpRequests = helpRequestRepository.findAll();
+        logAllHelpResponses();
         logger.info("Список всех запросов помощи:");
         for (HelpRequest hr : allHelpRequests) {
             logger.info("ID запроса: {}, Пользователь: {}, Описание: {}", hr.getId(), hr.getUser().getUsername(), hr.getDescription());
@@ -56,7 +57,21 @@ public class HelpResponseService {
         // Сохраняем новый отклик
         return helpResponseRepository.save(helpResponse);
     }
+    public void logAllHelpResponses() {
+        logger.info("Список всех ответов помощи:");
+        // Получаем все ответы из репозитория
+        List<HelpResponse> allHelpResponses = helpResponseRepository.findAll();
 
+        for (HelpResponse hr : allHelpResponses) {
+            // Логируем информацию о каждом ответе
+            logger.info("ID ответа: {}, ID запроса: {}, Ответчик: {}, Статус выполнения: {}, Дата создания: {}",
+                    hr.getId(),
+                    hr.getHelpRequest().getId(),
+                    hr.getResponder().getUsername(),
+                    hr.isCompleted() ? "Завершено" : "В процессе",
+                    hr.getCreatedAt());
+        }
+    }
     public List<HelpResponse> getAllHelpResponses() {
         return helpResponseRepository.findAll();
     }
