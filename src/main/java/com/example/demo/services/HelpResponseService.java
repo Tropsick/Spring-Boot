@@ -83,21 +83,12 @@ public class HelpResponseService {
         }
     }
 
-    /**
-     * Получение всех откликов
-     *
-     * @return List<HelpResponse> список всех откликов
-     */
+
     public List<HelpResponse> getAllHelpResponses() {
         return helpResponseRepository.findAll();
     }
 
-    /**
-     * Завершение отклика
-     *
-     * @param responseId ID отклика
-     * @return HelpResponse обновленный отклик с пометкой завершенности
-     */
+
     public HelpResponse completeHelpResponse(Long responseId) {
         HelpResponse helpResponse = helpResponseRepository.findById(responseId)
                 .orElseThrow(() -> new RuntimeException("Ответ не найден"));
