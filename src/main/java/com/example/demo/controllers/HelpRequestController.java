@@ -68,6 +68,13 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("У вас уже есть активный запрос");
             }
 
+            // Проверяем, хватает ли кармы
+            int requiredKarma = 10; // Минимальная карма для создания запроса
+            if (user.getKarma() < requiredKarma) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Недостаточно кармы для создания запроса. Необходимо минимум " + requiredKarma);
+            }
+
             // Создаем новый запрос
             HelpRequest helpRequest = new HelpRequest();
             helpRequest.setUser(user);
@@ -81,9 +88,11 @@ public class HelpRequestController {
 
             return ResponseEntity.ok("Запрос помощи успешно создан!");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при создании запроса: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при создании запроса: " + e.getMessage());
         }
     }
+
     @GetMapping("/count")
     public ResponseEntity<Long> getHelpRequestResponseCount(@RequestParam Long requestId) {
         long count = helpResponseRepository.countByHelpRequest(helpRequestRepository.findById(requestId).orElse(null));
