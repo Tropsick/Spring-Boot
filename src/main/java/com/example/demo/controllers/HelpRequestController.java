@@ -102,7 +102,7 @@ public class HelpRequestController {
 
                     // Проверяем, что нет откликов на запрос, включая начатые или завершенные
                     return responses.stream().noneMatch(response -> response.getResponder().getUsername().equals(username)
-                            && !response.isCompleted()); // Исключаем запросы, на которые есть отклики (начатые или завершенные)
+                            && !response.isCompleted() ||  !response.isCompleted());
                 })
                 .collect(Collectors.toList());
 
