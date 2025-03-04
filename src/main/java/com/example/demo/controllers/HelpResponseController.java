@@ -60,12 +60,6 @@ public class HelpResponseController {
         return helpResponseRepository.findAll();
     }
 
-    // Получить ответы на конкретный запрос
-    @GetMapping("/request/{requestId}")
-    public List<HelpResponse> getHelpResponsesForRequest(@PathVariable Long requestId) {
-        return helpResponseRepository.findByHelpRequestId(requestId);
-    }
-
     // Пример завершения помощи
     @PutMapping("/complete/{responseId}")
     public HelpResponse completeHelpResponse(@PathVariable Long responseId) {
