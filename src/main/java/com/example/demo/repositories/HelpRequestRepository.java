@@ -9,6 +9,5 @@ import java.util.Optional;
 
 @Repository
 public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> {
-
-    Optional<HelpRequest> findByUserAndIsCompletedFalse(User user);
 }
+

@@ -27,13 +27,16 @@ public class HelpResponseService {
     public HelpResponse createHelpResponse(String requestUsername, String responderUsername) {
         // Ищем пользователей по именам
         User requestUser = userRepository.findByUsername(requestUsername)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> new RuntimeException("Запрашивающий пользователь не найден"));
 
         User responderUser = userRepository.findByUsername(responderUsername)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> new RuntimeException("Респондер не найден"));
 
-        // Ищем запрос помощи, который еще не принят
-        HelpRequest helpRequest = helpRequestRepository.findByUserAndIsCompletedFalse(requestUser)
+        // Ищем активный запрос на помощь, у которого еще нет ответа
+        HelpRequest helpRequest = helpRequestRepository.findAll().stream()
+                .filter(req -> req.getUser().equals(requestUser))
+                .filter(req -> helpResponseRepository.findByHelpRequest(req).isEmpty()) // Проверяем, нет ли уже ответа
+                .findFirst()
                 .orElseThrow(() -> new RuntimeException("Нет доступных запросов помощи"));
 
         // Создаем новый отклик
