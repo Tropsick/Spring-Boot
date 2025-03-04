@@ -27,13 +27,7 @@ public class HelpResponseService {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * Создание отклика на запрос помощи
-     *
-     * @param requestUsername имя пользователя, который сделал запрос
-     * @param responderUsername имя пользователя, который откликается
-     * @return HelpResponse отклик на запрос
-     */
+
     public HelpResponse createHelpResponse(String requestUsername, String responderUsername) {
         // Ищем пользователей по именам
         User requestUser = userRepository.findByUsername(requestUsername)
@@ -41,6 +35,12 @@ public class HelpResponseService {
 
         User responderUser = userRepository.findByUsername(responderUsername)
                 .orElseThrow(() -> new RuntimeException("Респондер не найден"));
+
+        // Проверяем, есть ли у респондера уже незавершённый отклик
+        boolean hasActiveResponse = helpResponseRepository.existsByResponderAndIsCompletedFalse(responderUser);
+        if (hasActiveResponse) {
+            throw new RuntimeException("Вы уже выполняете другой запрос, завершите его перед тем, как взять новый.");
+        }
 
         // Ищем открытые запросы на помощь от requestUser, к которым еще нет отклика
         HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser)
@@ -66,9 +66,8 @@ public class HelpResponseService {
         return helpResponseRepository.save(helpResponse);
     }
 
-    /**
-     * Логирование всех откликов
-     */
+
+
     public void logAllHelpResponses() {
         logger.info("Список всех откликов на запросы помощи:");
         List<HelpResponse> allHelpResponses = helpResponseRepository.findAll();

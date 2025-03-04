@@ -16,5 +16,6 @@ public interface HelpResponseRepository extends JpaRepository<HelpResponse, Long
     List<HelpResponse> findByHelpRequestAndResponder(HelpRequest request, User user);
 
     long countByHelpRequest(HelpRequest helpRequest);
+    boolean existsByResponderAndIsCompletedFalse(User responder);
 
 }
