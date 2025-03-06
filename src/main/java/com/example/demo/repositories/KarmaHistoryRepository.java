@@ -11,4 +11,6 @@ import java.util.List;
 public interface KarmaHistoryRepository extends JpaRepository<KarmaHistory, Long> {
     List<KarmaHistory> findBySender(User sender);
     List<KarmaHistory> findByReceiver(User receiver);
+    List<KarmaHistory> findBySenderOrReceiver(User sender, User receiver);
+
 }
