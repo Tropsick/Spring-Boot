@@ -102,6 +102,7 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
+            // Ищем первый доступный запрос помощи, исключая собственные запросы
             Optional<HelpRequest> helpRequest = helpRequestRepository.findAll().stream()
                     .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем свои запросы
                     .findFirst(); // Берем первый найденный запрос
@@ -112,12 +113,11 @@ public class HelpRequestController {
 
             HelpRequest request = helpRequest.get();
 
-            // Создаем новый объект для ответа с необходимыми полями
+            // Создаем новый объект для ответа с только необходимыми полями
             Map<String, Object> response = new HashMap<>();
             response.put("category", request.getCategory());
             response.put("price", request.getPrice());
             response.put("description", request.getDescription());
-            response.put("createdAt", request.getCreatedAt());
 
             // Проверяем, есть ли отклики
             List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
@@ -129,12 +129,14 @@ public class HelpRequestController {
                 response.put("responder", "Никто");
             }
 
+            // Возвращаем ответ с нужными полями
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при получении запроса: " + e.getMessage());
         }
     }
+
 
 
 
