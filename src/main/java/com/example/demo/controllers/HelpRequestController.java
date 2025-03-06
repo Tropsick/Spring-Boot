@@ -121,6 +121,7 @@ public class HelpRequestController {
 
             // Проверяем, есть ли отклики
             List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
+
             if (!responses.isEmpty()) {
                 // Берем первого откликнувшегося пользователя
                 String responderUsername = responses.get(0).getResponder().getUsername();
@@ -128,6 +129,9 @@ public class HelpRequestController {
             } else {
                 response.put("responder", "Никто");
             }
+
+            // Логирование для отладки
+            System.out.println("Response: " + response); // Логируем ответ для проверки
 
             // Возвращаем ответ с нужными полями
             return ResponseEntity.ok(response);
