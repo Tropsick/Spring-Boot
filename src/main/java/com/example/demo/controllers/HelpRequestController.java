@@ -113,41 +113,34 @@ public class HelpRequestController {
 
             HelpRequest request = helpRequest.get();
 
+            // Проверяем, есть ли отклики
+            List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
+
+            // Если хотя бы один отклик завершён, сразу возвращаем "уже запрос выполнен"
+            boolean isRequestCompleted = responses.stream().anyMatch(HelpResponse::isCompleted);
+            if (isRequestCompleted) {
+                return ResponseEntity.ok().body(Map.of("message", "Уже запрос выполнен"));
+            }
+
             // Создаем новый объект для ответа с только необходимыми полями
             Map<String, Object> response = new HashMap<>();
             response.put("category", request.getCategory());
             response.put("price", request.getPrice());
             response.put("description", request.getDescription());
 
-            // Проверяем, есть ли отклики
-            List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
-
             if (!responses.isEmpty()) {
-                // Находим первый отклик, который не завершён
-                HelpResponse firstIncompleteResponse = responses.stream()
-                        .filter(helpResponse -> helpResponse.isCompleted()) // Используем переменную helpResponse для фильтрации
-                        .findFirst()
-                        .orElse(null);
+                // Берем первого откликнувшегося пользователя
+                HelpResponse firstResponse = responses.get(0);
+                User responder = firstResponse.getResponder();
 
-                if (firstIncompleteResponse != null) {
-                    // Берем первого откликнувшегося пользователя по его ID
-                    Long responderId = firstIncompleteResponse.getResponder().getId();
-                    User responder = userRepository.findById(responderId).orElse(null); // Ищем пользователя по ID
-
-                    if (responder != null) {
-                        String responderUsername = responder.getUsername(); // Получаем имя пользователя
-                        response.put("responder", responderUsername);
-                    } else {
-                        response.put("responder", "Неизвестный пользователь");
-                    }
+                if (responder != null) {
+                    response.put("responder", responder.getUsername());
                 } else {
-                    // Если откликов нет или все отклики завершены, показываем "Никто"
-                    response.put("responder", "Никто");
+                    response.put("responder", "Неизвестный пользователь");
                 }
             } else {
                 response.put("responder", "Никто");
             }
-
 
             // Логирование для отладки
             System.out.println("Response: " + response); // Логируем ответ для проверки
@@ -159,6 +152,7 @@ public class HelpRequestController {
                     .body("Ошибка при получении запроса: " + e.getMessage());
         }
     }
+
 
 
 
