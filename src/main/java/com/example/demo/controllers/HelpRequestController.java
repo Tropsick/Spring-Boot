@@ -139,17 +139,18 @@ public class HelpRequestController {
 
     @PostMapping("/cancel")
     @Transactional
-    public ResponseEntity<?> cancelRequest(@RequestParam Long requestId, @RequestParam String username) {
+    public ResponseEntity<?> cancelRequest(@RequestParam String username) {
         try {
-            // Ищем запрос по ID
-            HelpRequest helpRequest = helpRequestRepository.findById(requestId).orElse(null);
-            if (helpRequest == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Запрос не найден");
+            // Ищем пользователя по username
+            User requestUser = userRepository.findByUsername(username).orElse(null);
+            if (requestUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Проверяем, что запрос принадлежит этому пользователю
-            if (!helpRequest.getUser().getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете отменить этот запрос");
+            // Ищем первый открытый запрос помощи этого пользователя (не завершенный)
+            HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser).orElse(null);
+            if (helpRequest == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("У вас нет активных запросов");
             }
 
             // Удаляем запрос
@@ -160,19 +161,21 @@ public class HelpRequestController {
                     .body("Ошибка при отмене запроса: " + e.getMessage());
         }
     }
+
     @PostMapping("/confirm")
     @Transactional
-    public ResponseEntity<?> confirmRequest(@RequestParam Long requestId, @RequestParam String username) {
+    public ResponseEntity<?> confirmRequest(@RequestParam String username) {
         try {
-            // Ищем запрос по ID
-            HelpRequest helpRequest = helpRequestRepository.findById(requestId).orElse(null);
-            if (helpRequest == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Запрос не найден");
+            // Ищем пользователя по username
+            User requestUser = userRepository.findByUsername(username).orElse(null);
+            if (requestUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Проверяем, что запрос принадлежит этому пользователю (создателю запроса)
-            if (!helpRequest.getUser().getUsername().equals(username)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете подтвердить этот запрос");
+            // Ищем первый открытый запрос помощи этого пользователя (не завершенный)
+            HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser).orElse(null);
+            if (helpRequest == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("У вас нет активных запросов");
             }
 
             // Получаем отклики на запрос
@@ -190,7 +193,6 @@ public class HelpRequestController {
             helpResponseRepository.save(helpResponse);
 
             // Уменьшаем карму пользователя, который сделал запрос
-            User requestUser = helpRequest.getUser();
             int price = helpRequest.getPrice();
             requestUser.setKarma(requestUser.getKarma() - price);
 
