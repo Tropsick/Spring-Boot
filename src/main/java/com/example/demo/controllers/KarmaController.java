@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/karma")
+@RequestMapping("/api/karma")
 public class KarmaController {
     @Autowired
     private KarmaService karmaService;
