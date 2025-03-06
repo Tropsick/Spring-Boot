@@ -2,8 +2,10 @@ package com.example.demo.controllers;
 
 import com.example.demo.models.HelpRequest;
 import com.example.demo.models.HelpResponse;
+import com.example.demo.models.KarmaHistory;
 import com.example.demo.models.User;
 import com.example.demo.repositories.HelpResponseRepository;
+import com.example.demo.repositories.KarmaHistoryRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.repositories.HelpRequestRepository;
 import com.example.demo.services.HelpRequestService;
@@ -33,6 +35,8 @@ public class HelpRequestController {
     private final HelpRequestRepository helpRequestRepository;
     private final HelpResponseRepository helpResponseRepository;
     private final UserService userService;
+    private final KarmaHistoryRepository karmaHistoryRepository;
+
 
     private static final Logger logger = LoggerFactory.getLogger(HelpRequestController.class);
 
@@ -41,12 +45,15 @@ public class HelpRequestController {
                                  UserRepository userRepository,
                                  HelpRequestRepository helpRequestRepository,
                                  HelpResponseRepository helpResponseRepository,
-                                 UserService userService) {
+                                 UserService userService,
+                                 KarmaHistoryRepository karmaHistoryRepository) {
         this.helpRequestService = helpRequestService;
         this.userRepository = userRepository;
         this.helpRequestRepository = helpRequestRepository;
         this.helpResponseRepository = helpResponseRepository;
         this.userService = userService;
+        this.karmaHistoryRepository = karmaHistoryRepository;
+
     }
 
     @PostMapping("/create")
@@ -186,44 +193,61 @@ public class HelpRequestController {
     @Transactional
     public ResponseEntity<?> confirmRequest(@RequestParam String username) {
         try {
-            // Ищем пользователя по username
+            // Ищем пользователя, который создавал запрос
             User requestUser = userRepository.findByUsername(username).orElse(null);
             if (requestUser == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Ищем первый открытый запрос помощи этого пользователя (не завершенный)
+            // Ищем первый активный запрос помощи с откликами
             HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUserWithResp(requestUser).orElse(null);
             if (helpRequest == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("У вас нет активных запросов");
             }
 
-            // Получаем отклики на запрос
+            // Получаем отклики
             List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(helpRequest);
             if (responses.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Нет откликов на этот запрос");
             }
 
-            // Выбираем первого откликнувшегося пользователя
+            // Берем первого откликнувшегося
             HelpResponse helpResponse = responses.get(0);
             User responder = helpResponse.getResponder();
 
-            // Обновляем статус отклика на завершенный
+            // Если отклик уже завершен, ничего не делаем
+            if (helpResponse.isCompleted()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Этот запрос уже подтвержден");
+            }
+
+            // Обновляем статус отклика
             helpResponse.setIsCompleted(true);
             helpResponseRepository.save(helpResponse);
 
-            // Уменьшаем карму пользователя, который сделал запрос
+            // Передача кармы
             int price = helpRequest.getPrice();
+            if (requestUser.getKarma() < price) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Недостаточно кармы для передачи");
+            }
+
             requestUser.setKarma(requestUser.getKarma() - price);
 
-            // Увеличиваем карму откликнувшегося пользователя
-            responder.setKarma(responder.getKarma() + price);
+            // Рассчитываем, сколько кармы можно прибавить, чтобы не превысить 100
+            int newKarma = responder.getKarma() + price;
+            int actualAddedKarma = Math.min(price, 100 - responder.getKarma()); // Сколько реально прибавится
+            responder.setKarma(Math.min(newKarma, 100)); // Устанавливаем ограничение
 
-            // Сохраняем изменения в карме пользователей
             userRepository.save(requestUser);
             userRepository.save(responder);
 
-            return ResponseEntity.ok("Запрос подтвержден успешно");
+            // Записываем в историю передачу кармы
+            KarmaHistory karmaHistory = new KarmaHistory();
+            karmaHistory.setSender(requestUser);
+            karmaHistory.setReceiver(responder);
+            karmaHistory.setAmount(actualAddedKarma); // Фиксируем реальное количество переданной кармы
+            karmaHistoryRepository.save(karmaHistory);
+
+            return ResponseEntity.ok("Запрос подтвержден успешно, передано " + actualAddedKarma + " кармы");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при подтверждении запроса: " + e.getMessage());
