@@ -102,13 +102,13 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Ищем первый доступный запрос помощи, исключая собственные запросы
+            // Ищем первый доступный запрос помощи, принадлежащий текущему пользователю
             Optional<HelpRequest> helpRequest = helpRequestRepository.findAll().stream()
-                    .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем свои запросы
+                    .filter(request -> request.getUser().getId().equals(user.getId())) // Показываем запросы текущего пользователя по ID
                     .findFirst(); // Берем первый найденный запрос
 
             if (helpRequest.isEmpty()) {
-                return ResponseEntity.ok().body(Map.of("message", "Нет доступных запросов")); // Нет доступных запросов
+                return ResponseEntity.ok().body(Map.of("message", "Нет доступных запросов для этого пользователя")); // Нет доступных запросов
             }
 
             HelpRequest request = helpRequest.get();
@@ -147,6 +147,7 @@ public class HelpRequestController {
                     .body("Ошибка при получении запроса: " + e.getMessage());
         }
     }
+
 
 
     @PostMapping("/cancel")
