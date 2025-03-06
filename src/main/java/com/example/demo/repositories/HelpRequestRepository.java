@@ -15,4 +15,7 @@ public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> 
 
     @Query("SELECT h FROM HelpRequest h WHERE h.user = :user AND NOT EXISTS (SELECT r FROM HelpResponse r WHERE r.helpRequest = h)")
     Optional<HelpRequest> findOpenRequestByUser(@Param("user") User user);
+    @Query("SELECT h FROM HelpRequest h WHERE h.user = :user AND h.isCompleted = false")
+    Optional<HelpRequest> findOpenRequestByUserWithResp(@Param("user") User user);
+
 }
