@@ -123,9 +123,16 @@ public class HelpRequestController {
             List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
 
             if (!responses.isEmpty()) {
-                // Берем первого откликнувшегося пользователя
-                String responderUsername = responses.get(0).getResponder().getUsername();
-                response.put("responder", responderUsername);
+                // Берем первого откликнувшегося пользователя по его ID
+                Long responderId = responses.get(0).getResponder().getId();
+                User responder = userRepository.findById(responderId).orElse(null); // Ищем пользователя по ID
+
+                if (responder != null) {
+                    String responderUsername = responder.getUsername(); // Получаем имя пользователя
+                    response.put("responder", responderUsername);
+                } else {
+                    response.put("responder", "Неизвестный пользователь");
+                }
             } else {
                 response.put("responder", "Никто");
             }
@@ -140,6 +147,7 @@ public class HelpRequestController {
                     .body("Ошибка при получении запроса: " + e.getMessage());
         }
     }
+
 
     @PostMapping("/cancel")
     @Transactional
