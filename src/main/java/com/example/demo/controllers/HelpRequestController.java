@@ -161,7 +161,7 @@ public class HelpRequestController {
             }
 
             // Ищем первый открытый запрос помощи этого пользователя (не завершенный)
-            HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser).orElse(null);
+            HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUserWithResp(requestUser).orElse(null);
             if (helpRequest == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("У вас нет активных запросов");
             }
