@@ -122,7 +122,7 @@ public class HelpRequestController {
                 ));
             }
 
-            return ResponseEntity.ok(Map.of("helpRequest", request, "responder", null));
+            return ResponseEntity.ok(Map.of("helpRequest", request, "responder", "Никто"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при получении запроса: " + e.getMessage());
