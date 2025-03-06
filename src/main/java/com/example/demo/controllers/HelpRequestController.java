@@ -109,61 +109,57 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Получаем все запросы помощи для текущего пользователя
-            List<HelpRequest> allRequests = helpRequestRepository.findAll().stream()
-                    .filter(request -> request.getUser().getId().equals(user.getId())) // Запросы текущего пользователя по ID
-                    .collect(Collectors.toList()); // Собираем в список
+            // Ищем последний доступный запрос помощи этого пользователя
+            Optional<HelpRequest> helpRequest = helpRequestRepository.findAll().stream()
+                    .filter(request -> request.getUser().getId().equals(user.getId())) // Показываем запросы текущего пользователя по ID
+                    .filter(request -> !helpResponseRepository.findByHelpRequest(request).stream().anyMatch(HelpResponse::isCompleted)) // Ищем только незавершенные
+                    .reduce((first, second) -> second); // Берем последний запрос
 
-            // Ищем первый не завершенный запрос
-            for (HelpRequest request : allRequests) {
-                // Проверяем отклики на запрос
-                List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
-
-                // Если отклики есть, и хотя бы один отклик завершён, пропускаем этот запрос
-                boolean isRequestCompleted = responses.stream().anyMatch(HelpResponse::isCompleted);
-                if (isRequestCompleted) {
-                    continue; // Если запрос выполнен, пропускаем
-                }
-
-                // Если запрос ещё не завершен, возвращаем его
-                Map<String, Object> response = new HashMap<>();
-                response.put("category", request.getCategory());
-                response.put("price", request.getPrice());
-                response.put("description", request.getDescription());
-
-                if (!responses.isEmpty()) {
-                    // Берем первого откликнувшегося пользователя
-                    HelpResponse firstResponse = responses.get(0);
-                    User responder = firstResponse.getResponder();
-
-                    if (responder != null) {
-                        response.put("responder", responder.getUsername());
-                    } else {
-                        response.put("responder", "Неизвестный пользователь");
-                    }
-                } else {
-                    response.put("responder", "Никто");
-                }
-
-                // Логирование для отладки
-                System.out.println("Response: " + response); // Логируем ответ для проверки
-
-                // Возвращаем ответ с нужными полями
-                return ResponseEntity.ok(response);
+            if (helpRequest.isEmpty()) {
+                return ResponseEntity.ok().body(Map.of("message", "Нет доступных запросов для этого пользователя")); // Нет доступных запросов
             }
 
-            // Если нет доступных запросов, возвращаем сообщение
-            return ResponseEntity.ok().body(Map.of("message", "Нет доступных запросов для этого пользователя"));
+            HelpRequest request = helpRequest.get();
 
+            // Проверяем, есть ли отклики
+            List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
+
+            // Если хотя бы один отклик завершён, сразу возвращаем "уже запрос выполнен"
+            boolean isRequestCompleted = responses.stream().anyMatch(HelpResponse::isCompleted);
+            if (isRequestCompleted) {
+                return ResponseEntity.ok().body(Map.of("message", "Уже запрос выполнен"));
+            }
+
+            // Создаем новый объект для ответа с только необходимыми полями
+            Map<String, Object> response = new HashMap<>();
+            response.put("category", request.getCategory());
+            response.put("price", request.getPrice());
+            response.put("description", request.getDescription());
+
+            if (!responses.isEmpty()) {
+                // Берем первого откликнувшегося пользователя
+                HelpResponse firstResponse = responses.get(0);
+                User responder = firstResponse.getResponder();
+
+                if (responder != null) {
+                    response.put("responder", responder.getUsername());
+                } else {
+                    response.put("responder", "Неизвестный пользователь");
+                }
+            } else {
+                response.put("responder", "Никто");
+            }
+
+            // Логирование для отладки
+            System.out.println("Response: " + response); // Логируем ответ для проверки
+
+            // Возвращаем ответ с нужными полями
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при получении запроса: " + e.getMessage());
         }
     }
-
-
-
-
 
 
     @PostMapping("/cancel")
@@ -176,21 +172,43 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Ищем первый открытый запрос помощи этого пользователя (не завершенный)
-            HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUserWithResp(requestUser).orElse(null);
+            // Ищем последний открытый запрос помощи этого пользователя (не завершенный)
+            HelpRequest helpRequest = helpRequestRepository.findAll().stream()
+                    .filter(request -> request.getUser().getId().equals(requestUser.getId())) // Показываем запросы текущего пользователя
+                    .filter(request -> helpResponseRepository.findByHelpRequest(request).stream().noneMatch(HelpResponse::isCompleted)) // Ищем только незавершенные
+                    .reduce((first, second) -> second) // Берем последний запрос
+                    .orElse(null);
+
             if (helpRequest == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("У вас нет активных запросов");
             }
 
             // Удаляем запрос
             helpRequestRepository.delete(helpRequest);
-            return ResponseEntity.ok("Запрос отменен успешно");
+
+            // Ищем следующий открытый запрос для этого пользователя
+            HelpRequest nextHelpRequest = helpRequestRepository.findAll().stream()
+                    .filter(request -> request.getUser().getId().equals(requestUser.getId())) // Показываем запросы текущего пользователя
+                    .filter(request -> helpResponseRepository.findByHelpRequest(request).stream().noneMatch(HelpResponse::isCompleted)) // Ищем только незавершенные
+                    .reduce((first, second) -> second) // Берем последний запрос
+                    .orElse(null);
+
+            if (nextHelpRequest == null) {
+                return ResponseEntity.ok("Запрос отменен успешно. Больше нет активных запросов.");
+            }
+
+            // Возвращаем следующий активный запрос
+            Map<String, Object> response = new HashMap<>();
+            response.put("category", nextHelpRequest.getCategory());
+            response.put("price", nextHelpRequest.getPrice());
+            response.put("description", nextHelpRequest.getDescription());
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при отмене запроса: " + e.getMessage());
         }
     }
-
     @PostMapping("/confirm")
     @Transactional
     public ResponseEntity<?> confirmRequest(@RequestParam String username) {
@@ -201,8 +219,13 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Ищем первый активный запрос помощи с откликами
-            HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUserWithResp(requestUser).orElse(null);
+            // Ищем последний активный запрос помощи с откликами
+            HelpRequest helpRequest = helpRequestRepository.findAll().stream()
+                    .filter(request -> request.getUser().getId().equals(requestUser.getId())) // Показываем запросы текущего пользователя
+                    .filter(request -> helpResponseRepository.findByHelpRequest(request).stream().noneMatch(HelpResponse::isCompleted)) // Ищем только незавершенные
+                    .reduce((first, second) -> second) // Берем последний запрос
+                    .orElse(null);
+
             if (helpRequest == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("У вас нет активных запросов");
             }
@@ -249,13 +272,29 @@ public class HelpRequestController {
             karmaHistory.setAmount(actualAddedKarma); // Фиксируем реальное количество переданной кармы
             karmaHistoryRepository.save(karmaHistory);
 
-            return ResponseEntity.ok("Запрос подтвержден успешно, передано " + actualAddedKarma + " кармы");
+            // Ищем следующий активный запрос для этого пользователя
+            HelpRequest nextHelpRequest = helpRequestRepository.findAll().stream()
+                    .filter(request -> request.getUser().getId().equals(requestUser.getId())) // Показываем запросы текущего пользователя
+                    .filter(request -> helpResponseRepository.findByHelpRequest(request).stream().noneMatch(HelpResponse::isCompleted)) // Ищем только незавершенные
+                    .reduce((first, second) -> second) // Берем последний запрос
+                    .orElse(null);
+
+            if (nextHelpRequest == null) {
+                return ResponseEntity.ok("Запрос подтвержден успешно. Передано " + actualAddedKarma + " кармы. Больше нет активных запросов.");
+            }
+
+            // Возвращаем следующий активный запрос
+            Map<String, Object> response = new HashMap<>();
+            response.put("category", nextHelpRequest.getCategory());
+            response.put("price", nextHelpRequest.getPrice());
+            response.put("description", nextHelpRequest.getDescription());
+            return ResponseEntity.ok("Запрос подтвержден успешно, передано " + actualAddedKarma + " кармы. Следующий активный запрос: " + response);
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при подтверждении запроса: " + e.getMessage());
         }
     }
-
 
 
     @GetMapping("/count")
