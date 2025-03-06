@@ -185,11 +185,7 @@ public class HelpRequestController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            // Ищем первый открытый запрос помощи этого пользователя (не завершенный)
-            HelpRequest helpRequest = helpRequestRepository.findOpenRequestByUser(requestUser).orElse(null);
-            if (helpRequest == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("У вас нет активных запросов");
-            }
+
 
             // Получаем отклики на запрос
             List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(helpRequest);
