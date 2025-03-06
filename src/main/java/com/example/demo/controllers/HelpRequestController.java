@@ -95,33 +95,41 @@ public class HelpRequestController {
     @GetMapping("/single")
     public ResponseEntity<?> getSingleHelpRequest(@RequestParam String username) {
         try {
+            // Ищем пользователя по имени
             User user = userRepository.findByUsername(username).orElse(null);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
             }
 
-            Optional<HelpRequest> helpRequest = helpRequestRepository.findAll().stream()
-                    .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем свои запросы
+            // Находим запрос о помощи, связанный с пользователем
+            Optional<HelpRequest> helpRequestOpt = helpRequestRepository.findAll().stream()
+                    .filter(request -> request.getUser().equals(user)) // Ищем запросы этого пользователя
                     .findFirst(); // Берем первый найденный запрос
 
-            if (helpRequest.isEmpty()) {
-                return ResponseEntity.ok().body(null); // Нет доступных запросов
+            if (helpRequestOpt.isEmpty()) {
+                return ResponseEntity.ok(Map.of("message", "Нет запроса о помощи у этого пользователя")); // Если запрос не найден
             }
 
-            HelpRequest request = helpRequest.get();
+            HelpRequest helpRequest = helpRequestOpt.get();
 
-            // Проверяем, есть ли отклики
-            List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
+            // Проверяем, есть ли отклики на этот запрос
+            List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(helpRequest);
+
             if (!responses.isEmpty()) {
-                // Берем первого откликнувшегося пользователя
+                // Если есть отклик, возвращаем информацию о запросе и откликнувшемся пользователе
                 String responderUsername = responses.get(0).getResponder().getUsername();
                 return ResponseEntity.ok(Map.of(
-                        "helpRequest", request,
-                        "responder", responderUsername
+                        "helpRequest", helpRequest, // Информация о запросе
+                        "responder", responderUsername // Логин откликнувшегося
                 ));
             }
 
-            return ResponseEntity.ok(Map.of("helpRequest", request, "responder", null));
+            // Если откликов нет, просто возвращаем информацию о запросе без откликнувшегося пользователя
+            return ResponseEntity.ok(Map.of(
+                    "helpRequest", helpRequest,
+                    "responder", null // Нет отклика
+            ));
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при получении запроса: " + e.getMessage());
