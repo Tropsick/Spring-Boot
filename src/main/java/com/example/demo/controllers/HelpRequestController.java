@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -111,18 +112,24 @@ public class HelpRequestController {
 
             HelpRequest request = helpRequest.get();
 
+            // Создаем новый объект для ответа с необходимыми полями
+            Map<String, Object> response = new HashMap<>();
+            response.put("category", request.getCategory());
+            response.put("price", request.getPrice());
+            response.put("description", request.getDescription());
+            response.put("createdAt", request.getCreatedAt());
+
             // Проверяем, есть ли отклики
             List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
             if (!responses.isEmpty()) {
                 // Берем первого откликнувшегося пользователя
                 String responderUsername = responses.get(0).getResponder().getUsername();
-                return ResponseEntity.ok(Map.of(
-                        "helpRequest", request,
-                        "responder", responderUsername
-                ));
+                response.put("responder", responderUsername);
+            } else {
+                response.put("responder", "Никто");
             }
 
-            return ResponseEntity.ok(Map.of("helpRequest", request, "responder", "Никто"));
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Ошибка при получении запроса: " + e.getMessage());
