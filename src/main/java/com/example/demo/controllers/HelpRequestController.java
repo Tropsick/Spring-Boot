@@ -92,6 +92,43 @@ public class HelpRequestController {
                     .body("Ошибка при создании запроса: " + e.getMessage());
         }
     }
+    @GetMapping("/single")
+    public ResponseEntity<?> getSingleHelpRequest(@RequestParam String username) {
+        try {
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
+            }
+
+            Optional<HelpRequest> helpRequest = helpRequestRepository.findAll().stream()
+                    .filter(request -> !request.getUser().getUsername().equals(username)) // Исключаем свои запросы
+                    .findFirst(); // Берем первый найденный запрос
+
+            if (helpRequest.isEmpty()) {
+                return ResponseEntity.ok().body(null); // Нет доступных запросов
+            }
+
+            HelpRequest request = helpRequest.get();
+
+            // Проверяем, есть ли отклики
+            List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(request);
+            if (!responses.isEmpty()) {
+                // Берем первого откликнувшегося пользователя
+                String responderUsername = responses.get(0).getResponder().getUsername();
+                return ResponseEntity.ok(Map.of(
+                        "helpRequest", request,
+                        "responder", responderUsername
+                ));
+            }
+
+            return ResponseEntity.ok(Map.of("helpRequest", request, "responder", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при получении запроса: " + e.getMessage());
+        }
+    }
+
+
 
     @GetMapping("/count")
     public ResponseEntity<Long> getHelpRequestResponseCount(@RequestParam Long requestId) {
@@ -114,8 +151,5 @@ public class HelpRequestController {
 
         return ResponseEntity.ok(helpRequests);
     }
-
-
-
 
 }
