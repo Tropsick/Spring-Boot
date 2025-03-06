@@ -32,6 +32,34 @@ public class HelpResponseController {
     public HelpResponse acceptHelpRequest(@RequestParam String requestUsername, @RequestParam String responderUsername) {
         return helpResponseService.createHelpResponse(requestUsername, responderUsername);
     }
+    @GetMapping("/cancel")
+    public ResponseEntity<?> cancelHelpResponse(@RequestParam String username) {
+        try {
+            // Ищем пользователя по имени
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Пользователь не найден");
+            }
+
+            // Находим отклик пользователя, который не завершен
+            Optional<HelpResponse> helpResponse = helpResponseRepository.findAll().stream()
+                    .filter(response -> response.getResponder().equals(user)) // Отклики пользователя
+                    .filter(response -> !response.isCompleted()) // Только незавершенные отклики
+                    .findFirst();
+
+            // Если отклик найден, удаляем его
+            if (helpResponse.isPresent()) {
+                helpResponseRepository.delete(helpResponse.get());
+                return ResponseEntity.ok().body("Отклик был успешно удален.");
+            } else {
+                // Если отклик не найден или завершен
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Нет откликов или они завершены");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при удалении отклика: " + e.getMessage());
+        }
+    }
 
     @GetMapping("/single")
     public ResponseEntity<?> getSingleHelpResponse(@RequestParam String username) {
