@@ -125,7 +125,7 @@ public class HelpRequestController {
             if (!responses.isEmpty()) {
                 // Находим первый отклик, который не завершён
                 HelpResponse firstIncompleteResponse = responses.stream()
-                        .filter(helpResponse -> !helpResponse.isCompleted()) // Используем переменную helpResponse для фильтрации
+                        .filter(helpResponse -> helpResponse.isCompleted()) // Используем переменную helpResponse для фильтрации
                         .findFirst()
                         .orElse(null);
 
