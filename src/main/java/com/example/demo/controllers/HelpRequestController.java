@@ -137,6 +137,76 @@ public class HelpRequestController {
         }
     }
 
+    @PostMapping("/cancel")
+    @Transactional
+    public ResponseEntity<?> cancelRequest(@RequestParam Long requestId, @RequestParam String username) {
+        try {
+            // Ищем запрос по ID
+            HelpRequest helpRequest = helpRequestRepository.findById(requestId).orElse(null);
+            if (helpRequest == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Запрос не найден");
+            }
+
+            // Проверяем, что запрос принадлежит этому пользователю
+            if (!helpRequest.getUser().getUsername().equals(username)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете отменить этот запрос");
+            }
+
+            // Удаляем запрос
+            helpRequestRepository.delete(helpRequest);
+            return ResponseEntity.ok("Запрос отменен успешно");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при отмене запроса: " + e.getMessage());
+        }
+    }
+    @PostMapping("/confirm")
+    @Transactional
+    public ResponseEntity<?> confirmRequest(@RequestParam Long requestId, @RequestParam String username) {
+        try {
+            // Ищем запрос по ID
+            HelpRequest helpRequest = helpRequestRepository.findById(requestId).orElse(null);
+            if (helpRequest == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Запрос не найден");
+            }
+
+            // Проверяем, что запрос принадлежит этому пользователю (создателю запроса)
+            if (!helpRequest.getUser().getUsername().equals(username)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Вы не можете подтвердить этот запрос");
+            }
+
+            // Получаем отклики на запрос
+            List<HelpResponse> responses = helpResponseRepository.findByHelpRequest(helpRequest);
+            if (responses.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Нет откликов на этот запрос");
+            }
+
+            // Выбираем первого откликнувшегося пользователя
+            HelpResponse helpResponse = responses.get(0);
+            User responder = helpResponse.getResponder();
+
+            // Обновляем статус отклика на завершенный
+            helpResponse.setIsCompleted(true);
+            helpResponseRepository.save(helpResponse);
+
+            // Уменьшаем карму пользователя, который сделал запрос
+            User requestUser = helpRequest.getUser();
+            int price = helpRequest.getPrice();
+            requestUser.setKarma(requestUser.getKarma() - price);
+
+            // Увеличиваем карму откликнувшегося пользователя
+            responder.setKarma(responder.getKarma() + price);
+
+            // Сохраняем изменения в карме пользователей
+            userRepository.save(requestUser);
+            userRepository.save(responder);
+
+            return ResponseEntity.ok("Запрос подтвержден успешно");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка при подтверждении запроса: " + e.getMessage());
+        }
+    }
 
 
 
