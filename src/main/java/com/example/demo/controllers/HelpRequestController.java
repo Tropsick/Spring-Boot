@@ -77,10 +77,9 @@ public class HelpRequestController {
             }
 
             // Проверяем, хватает ли кармы
-            int requiredKarma = 10; // Минимальная карма для создания запроса
-            if (user.getKarma() < requiredKarma) {
+            if (user.getKarma() < Integer.valueOf(price)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Недостаточно кармы для создания запроса. Необходимо минимум " + requiredKarma);
+                        .body("Недостаточно кармы для создания запроса.");
             }
 
             // Создаем новый запрос
