@@ -23,6 +23,7 @@ public class UserService {
         if (existingUser.isPresent()) {
             throw new IllegalArgumentException("Пользователь с таким именем уже существует");
         }
+        user.setKarma(20); // Устанавливаем карму по умолчанию
         // Хэшируем пароль перед сохранением
         user.setPasswordHash(passwordEncoder.encode(user.getPassword())); // Используем поле user.getPassword()
         userRepository.save(user);
