@@ -14,19 +14,20 @@ public class PromoCode {
     private String code; // Сам промокод
 
     private String description; // Описание промокода
-    private String company; // Название компании
-    private int cost; // Стоимость в карме
-
-    @Transient // Это поле не сохраняется в БД, оно будет использоваться только в процессе
-    private String userPromoCode; // Промокод, который пользователь получит
+    private String companyName; // Название компании
+    private int price; // Стоимость в карме
+    private boolean isActive; // Активен ли промокод
 
     public PromoCode() {}
 
-    public PromoCode(String code, String description, String company, int cost) {
+    // Новый конструктор для фильтрации активных промокодов без кода
+    public PromoCode(Long id, String code, int price, String description, String companyName, boolean isActive) {
+        this.id = id;
         this.code = code;
+        this.price = price;
         this.description = description;
-        this.company = company;
-        this.cost = cost;
+        this.companyName = companyName;
+        this.isActive = isActive;
     }
 
     // Геттеры и сеттеры
@@ -55,27 +56,27 @@ public class PromoCode {
         this.description = description;
     }
 
-    public String getCompany() {
-        return company;
+    public String getCompanyName() {
+        return companyName;
     }
 
-    public void setCompany(String company) {
-        this.company = company;
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
     }
 
-    public int getCost() {
-        return cost;
+    public int getPrice() {
+        return price;
     }
 
-    public void setCost(int cost) {
-        this.cost = cost;
+    public void setPrice(int price) {
+        this.price = price;
     }
 
-    public String getUserPromoCode() {
-        return userPromoCode;
+    public boolean isActive() {
+        return isActive;
     }
 
-    public void setUserPromoCode(String userPromoCode) {
-        this.userPromoCode = userPromoCode;
+    public void setActive(boolean active) {
+        isActive = active;
     }
 }

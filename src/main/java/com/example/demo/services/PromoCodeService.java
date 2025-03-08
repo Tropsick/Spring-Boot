@@ -6,56 +6,75 @@ import com.example.demo.repositories.PromoCodeRepository;
 import com.example.demo.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class PromoCodeService {
 
     private final PromoCodeRepository promoCodeRepository;
-    private final UserRepository userRepository;
+    private final UserRepository userRepository; // Добавляем UserRepository
 
     public PromoCodeService(PromoCodeRepository promoCodeRepository, UserRepository userRepository) {
         this.promoCodeRepository = promoCodeRepository;
         this.userRepository = userRepository;
     }
 
-    // Метод для получения промокода по коду
+    public List<PromoCode> getAllPromoCodes() {
+        return promoCodeRepository.findAll();
+    }
+
     public Optional<PromoCode> getPromoCodeByCode(String code) {
         return promoCodeRepository.findByCode(code);
     }
 
-    // Метод для покупки промокода
-    public String buyPromoCode(String username, String promoCode) {
-        Optional<User> user = userRepository.findByUsername(username);
-        Optional<PromoCode> code = promoCodeRepository.findByCode(promoCode);
-
-        if (user.isPresent() && code.isPresent()) {
-            PromoCode promo = code.get();
-            User currentUser = user.get();
-
-            if (currentUser.getKarma() >= promo.getCost()) {
-                // Если у пользователя достаточно кармы для покупки
-                currentUser.setKarma(currentUser.getKarma() - promo.getCost());
-
-                // Добавляем карму пользователю Shop
-                Optional<User> shopUser = userRepository.findByUsername("Shop");
-                shopUser.ifPresent(shop -> shop.setKarma(shop.getKarma() + promo.getCost()));
-
-                // Сохраняем обновления
-                userRepository.save(currentUser);
-                userRepository.save(shopUser.get());
-
-                return promo.getCode(); // Возвращаем промокод пользователю
-            } else {
-                return "Недостаточно кармы для покупки"; // Ошибка, если кармы не хватает
-            }
-        } else {
-            return "Промокод не найден"; // Ошибка, если промокод не найден
-        }
+    public void createPromoCode(PromoCode promoCode) {
+        promoCodeRepository.save(promoCode);
     }
 
-    // Метод для отображения всех доступных промокодов
-    public Optional<PromoCode> getPromoCodeDetails(String promoCode) {
-        return promoCodeRepository.findByCode(promoCode);
+    public String buyPromoCode(String username, String promoCode) {
+        Optional<PromoCode> promoOptional = promoCodeRepository.findByCode(promoCode);
+
+        if (promoOptional.isEmpty()) {
+            return "Промокод не найден";
+        }
+
+        PromoCode promo = promoOptional.get();
+
+        if (!promo.isActive()) {
+            return "Промокод уже неактивен";
+        }
+
+        Optional<User> userOptional = userRepository.findByUsername(username);
+
+        if (userOptional.isEmpty()) {
+            return "Пользователь не найден";
+        }
+
+        User user = userOptional.get();
+
+        if (user.getKarma() < promo.getPrice()) {
+            return "Недостаточно кармы для покупки";
+        }
+
+        // Вычитаем стоимость из кармы пользователя
+        user.setKarma(user.getKarma() - promo.getPrice());
+        userRepository.save(user);
+
+        // Делаем промокод неактивным
+        promo.setActive(false);
+        promoCodeRepository.save(promo);
+
+        return promo.getCode(); // Возвращаем код купленного промокода
+
+    }
+    // Получить детали промокода
+    public Optional<PromoCode> getPromoCodeDetails(String code) {
+        return promoCodeRepository.findByCode(code);
+    }
+
+    // Получить список всех активных промокодов
+    public List<PromoCode> getActivePromoCodes() {
+        return promoCodeRepository.findByIsActiveTrue();
     }
 }
