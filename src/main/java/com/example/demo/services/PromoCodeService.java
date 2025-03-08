@@ -4,6 +4,7 @@ import com.example.demo.models.PromoCode;
 import com.example.demo.models.User;
 import com.example.demo.repositories.PromoCodeRepository;
 import com.example.demo.repositories.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,11 +14,13 @@ import java.util.Optional;
 public class PromoCodeService {
 
     private final PromoCodeRepository promoCodeRepository;
-    private final UserRepository userRepository; // Добавляем UserRepository
+    private final UserRepository userRepository;
+    private final KarmaService karmaService; // Добавляем сервис кармы
 
-    public PromoCodeService(PromoCodeRepository promoCodeRepository, UserRepository userRepository) {
+    public PromoCodeService(PromoCodeRepository promoCodeRepository, UserRepository userRepository, KarmaService karmaService) {
         this.promoCodeRepository = promoCodeRepository;
         this.userRepository = userRepository;
+        this.karmaService = karmaService;
     }
 
     public List<PromoCode> getAllPromoCodes() {
@@ -34,46 +37,46 @@ public class PromoCodeService {
 
     public String buyPromoCode(String username, String promoCode) {
         Optional<PromoCode> promoOptional = promoCodeRepository.findByCode(promoCode);
-
         if (promoOptional.isEmpty()) {
             return "Промокод не найден";
         }
 
         PromoCode promo = promoOptional.get();
-
         if (!promo.isActive()) {
             return "Промокод уже неактивен";
         }
 
         Optional<User> userOptional = userRepository.findByUsername(username);
+        Optional<User> shopOptional = userRepository.findByUsername("Shop");
 
-        if (userOptional.isEmpty()) {
-            return "Пользователь не найден";
+        if (userOptional.isEmpty() || shopOptional.isEmpty()) {
+            return "Пользователь или магазин не найдены";
         }
 
         User user = userOptional.get();
+        User shop = shopOptional.get();
 
         if (user.getKarma() < promo.getPrice()) {
             return "Недостаточно кармы для покупки";
         }
 
-        // Вычитаем стоимость из кармы пользователя
-        user.setKarma(user.getKarma() - promo.getPrice());
-        userRepository.save(user);
+        // Perform karma transfer
+        ResponseEntity<?> transferResponse = karmaService.transferKarma(user.getUsername(), shop.getUsername(), promo.getPrice());
+        if (!transferResponse.getStatusCode().is2xxSuccessful()) {
+            return "Ошибка при переводе кармы: " + transferResponse.getBody();
+        }
 
-        // Делаем промокод неактивным
+        // Mark promo code as inactive
         promo.setActive(false);
         promoCodeRepository.save(promo);
 
-        return promo.getCode(); // Возвращаем код купленного промокода
-
+        return promo.getCode(); // Return the code of the purchased promo code
     }
-    // Получить детали промокода
+
     public Optional<PromoCode> getPromoCodeDetails(String code) {
         return promoCodeRepository.findByCode(code);
     }
 
-    // Получить список всех активных промокодов
     public List<PromoCode> getActivePromoCodes() {
         return promoCodeRepository.findByIsActiveTrue();
     }
