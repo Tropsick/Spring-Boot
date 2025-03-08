@@ -110,7 +110,7 @@ public class PromoCodeController {
             List<PromoCode> filteredPromoCodes = activePromoCodes.stream()
                     .map(promo -> new PromoCode(
                             promo.getId(),
-                            null, // Код промокода не передаем
+                            promo.getCode(), // Код промокода не передаем
                             promo.getPrice(),
                             promo.getDescription(),
                             promo.getCompanyName(),
