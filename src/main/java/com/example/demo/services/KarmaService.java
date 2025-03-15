@@ -32,6 +32,12 @@ public class KarmaService {
             return ResponseEntity.badRequest().body("Недостаточно кармы для передачи");
         }
 
+        // Ограничиваем amount, чтобы у получателя не получилось больше 100 кармы
+        int availableRoom = 100 - receiver.getKarma();
+        if (availableRoom < amount) {
+            amount = availableRoom;
+        }
+
         // Обновляем карму пользователей
         sender.setKarma(sender.getKarma() - amount);
         receiver.setKarma(receiver.getKarma() + amount);
@@ -47,6 +53,7 @@ public class KarmaService {
 
         return ResponseEntity.ok("Карма успешно передана!");
     }
+
 
     public List<KarmaHistory> getHistoryByUser(String username) {
         User user = userRepository.findByUsername(username).orElse(null);
